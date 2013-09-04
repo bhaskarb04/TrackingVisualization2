@@ -5,6 +5,7 @@ Hypothesis::Hypothesis(vector<vector<vector<cv::Point>>>c,double m,vector<Mat> i
 	histmax=m;
 	images=i;
 	nolabels=0;
+	maxnolabels=0;
 }
 
 Hypothesis::~Hypothesis(){
@@ -90,6 +91,7 @@ void Hypothesis::track(){
 		vector<hypo> framehypo;
 		vector<bool>matches;
 		vector<int> conditions;
+		vector<vector<HPoint>>framepoints;
 		for(unsigned int i=0;i<contours.size();i++){
 		//Find the contour bounds
 			cv::Rect r=cv::minAreaRect(contours[i]).boundingRect();
@@ -118,22 +120,192 @@ void Hypothesis::track(){
 			if(!mymatch){
 				for(int k=0;k<points.size();k++)
 					points[k].label.size()>0?points[k].label[0]=nolabels+1:points[k].label.push_back(nolabels+1);
+				nolabels++;
 			}
+			framepoints.push_back(points);
+			nodelist.push_back(pair<int,int>(j,i));
 		}//i
+		all_hypo.push_back(framehypo);
 		reduce_age();
 		framecondition.push_back(conditions);
 		check_blob_count(contours.size(),framehypo);
-		for(int i=0;i<framehypo.size();i++)
-			update_hypo(matches[i],framehypo[i],i);
+		//for(int i=0;i<framehypo.size();i++)
+			//update_hypo(matches[i],framehypo[i],i);
+		//cout<<j<<endl;
+		all_points.push_back(framepoints);
+		update_all(matches,framehypo);
+		maxnolabels=maxnolabels<nolabels?nolabels:maxnolabels;
 		framelinks.push_back(links);
 		links.clear();
 		listcontours[j].clear();
 		show_analysis_time(float(j)/float(listcontours.size()));
 	}//j
 	show_analysis_time(1.0);
+	cout<<endl<<"Number of particles detected: "<<maxnolabels<<endl;
+	//make_adjlist();
+	make_colors();
 	cout<<endl;
 }
 
+
+void Hypothesis::check_localpos(){
+
+}
+void Hypothesis::make_colors(){
+	framecontcolor.resize(images.size());
+	for(int i=0;i<all_hypo.size();i++)
+		framecontcolor[i].resize(all_hypo[i].size());
+	int framemax;
+	for(int i=0;i<all_hypo.size();i++){
+		if(all_hypo[i].size()==maxnolabels){
+			framemax=i;
+			break;
+		}
+	}
+	for(int i=0;i<framelinks.size();i++){
+		for(int j=0;j<framelinks[i].size();j++){
+			framecontcolor[i][framelinks[i][j].first].push_back(framelinks[i][j].second);
+		}
+	}
+	//check for breaks
+	for(int i=0;i<framecondition.size();i++){
+		for(int j=0;j<framecondition[i].size();j++){
+			if(framecondition[i][j]==BREAK){
+				int start=framelinks[i+1][j].second;
+				for(int k=i;k>=0;k--){
+					if(k==i)
+						framecontcolor[k][start].clear();
+					framecontcolor[k][start].push_back(framelinks[i+1][j].second);
+					start=framelinks[k][start].second;
+				}
+			}
+		}
+	}
+	//for(int cont=0;cont<all_hypo[framemax].size();cont++){
+	//	bool done=false;
+	//	int n,orign;
+	//	find_in_nodelist(framemax,cont,n);
+	//	int origstart,start=find_starting_point(n);
+	//	orign=n;origstart=start;
+	//	//before the max
+	//	while(!done){
+	//		int f=nodelist[n].first;
+	//		int c=nodelist[n].second;
+	//		framecontcolor[f][c].push_back(cont);
+	//		//conjecture there cannot be a repeat which is not accessed
+	//		check_for_repeat(start,n,true);
+	//		done=!find_prev(start,n);
+	//		if(done && repeat.size()>0){
+	//			start=repeat[0].first;
+	//			n=repeat[0].second;
+	//			repeat.erase(repeat.begin()+0);
+	//			done=false;
+	//		}
+	//	}
+	//	//after the max
+	//	n=adjlist[origstart].second;
+	//	start=origstart;
+	//	done=false;
+	//	while(!done){
+	//		int f=nodelist[n].first;
+	//		int c=nodelist[n].second;
+	//		framecontcolor[f][c].push_back(cont);
+	//		check_for_repeat(start,n,false);
+	//		done=!find_next(start,n);
+	//		if(done && repeat.size()>0){
+	//			start=repeat[0].first;
+	//			n=repeat[0].second;
+	//			repeat.erase(repeat.begin()+0);
+	//			done=false;
+	//		}
+	//	}
+	//}
+	//remove any repetitions
+	for(int i=0;i<framecontcolor.size();i++){
+		for(int j=0;j<framecontcolor[i].size();j++){
+			sort(framecontcolor[i][j].begin(),framecontcolor[i][j].end());
+			framecontcolor[i][j].erase( unique( framecontcolor[i][j].begin(), framecontcolor[i][j].end() ), framecontcolor[i][j].end());
+		}
+	}
+	//check_localpos();
+}
+
+void Hypothesis::check_for_repeat(int start,int n,bool prev){
+	if(start==0 || start==adjlist.size()-1)
+		return;
+	if(prev){
+		if(adjlist[start-1].first==n)
+			repeat.push_back(pair<int,int>(start-1,n));
+	}
+	else{
+		if(adjlist[start+1].first==n)
+			repeat.push_back(pair<int,int>(start+1,n));
+	}
+}
+bool Hypothesis::find_prev(int& start,int& n){
+	for(int i=start-1;i>=0;i--){
+		if(adjlist[i].second==n){
+			start=i;
+			n=adjlist[i].first;
+			return true;
+		}
+	}
+	return false;
+}
+bool Hypothesis::find_next(int& start,int& n){
+	for(int i=start+1;i<adjlist.size();i++){
+		if(adjlist[i].first==n){
+			start=i;
+			n=adjlist[i].second;
+			return true;
+		}
+	}
+	return false;
+}
+
+int Hypothesis::find_starting_point(int n){
+	for(int i=0;i<adjlist.size();i++){
+		if(adjlist[i].first==n)
+			return i;
+	}
+	return -1;
+}
+bool Hypothesis::find_in_nodelist(int frameno,int withinframe, int&n){
+	for(int i=0;i<nodelist.size();i++){
+		pair<int,int>mypair=pair<int,int>(frameno,withinframe);
+		if(nodelist[i]==mypair){
+			n=i;
+			return true;
+		}
+	}
+	return false;
+}
+
+void Hypothesis::make_adjlist(){
+	int jc=0;
+	for(int frameno=1;frameno<framelinks.size();frameno++){
+		//cout<<frameno<<endl;
+		for(int curr=0;curr<framelinks[frameno].size();curr++){
+			int prev=framelinks[frameno][curr].second;
+			/*for(prev=0;prev<framelinks[frameno-1].size();prev++){
+				if(framelinks[frameno][curr].second==framelinks[frameno-1][prev].second)
+					break;
+			}*/
+			
+			int n1=0,n2=0;
+			if(curr < framecondition[frameno].size() && framecondition[frameno][curr]==JOIN){
+				for(int i=0;i<joinvec[jc].size();i++){
+					if(find_in_nodelist(frameno,curr,n1) && find_in_nodelist(frameno-1,framelinks[frameno-1][joinvec[jc][i]].first,n2))
+						adjlist.push_back(pair<int,int>(n2,n1));
+				}
+				jc++;
+				continue;
+			}
+			if(find_in_nodelist(frameno,curr,n1) && find_in_nodelist(frameno-1,framelinks[frameno-1][prev].first,n2))
+				adjlist.push_back(pair<int,int>(n2,n1));
+		}//curr
+	}//frameno
+}
 bool Hypothesis::near_the_edge(hypo h){
 	bool nearedge=false;
 	int height=images[0].rows;
@@ -147,18 +319,21 @@ bool Hypothesis::near_the_edge(hypo h){
 	return nearedge;
 }
 void Hypothesis::reduce_age(){
+	vector<int>gone;
 	for(int i=0;i<listh.size();i++){
-		if(listh[i].age < AGE_MAX && near_the_edge(listh[i])){
+		/*if(listh[i].age < AGE_MAX && near_the_edge(listh[i])){
 			for(int j=0;j<links.size();j++){
 				if(links[j].second > i)
 					links[j].second--;
 			}
 			listh.erase(listh.begin()+i);
+			gone.push_back(i);
 			i--;
 			continue;
-		}
+		}*/
 		listh[i].age--;
 	}
+	gonelist.push_back(gone);
 }
 void Hypothesis::show_analysis_time(float t){
 	static char bar[]= "<.................................................>";
@@ -259,9 +434,11 @@ void Hypothesis::update_hypo(bool match,hypo h,int blobno){
 	if(!match){
 		listh.push_back(h);
 		pair<int,int> link(blobno,nolabels);
+		////pair<int,int> blobcon(-1,-1);
+		////bloblinks.push_back(blobcon);
 		links.push_back(link);
 		framecondition[framecondition.size()-1][blobno]=NEW;
-		nolabels++;
+		//nolabels++;
 	}
 	else{
 		double d=DBL_MAX;
@@ -278,9 +455,91 @@ void Hypothesis::update_hypo(bool match,hypo h,int blobno){
 			h.v=cv::Point(h.xc-listh[closest].xc,h.yc-listh[closest].yc);
 			listh[closest]=h;
 		//}
+		/*int frameno=framecondition.size()-1;
+		int curr=blobno;
+		int n1=0,n2=0;
+		int jc=joinvec.size()-1;
+		if(curr < framecondition[frameno].size() && framecondition[frameno][curr]==JOIN){
+			for(int i=0;i<joinvec[jc].size();i++){
+				if(find_in_nodelist(frameno,curr,n1) && find_in_nodelist(frameno-1,framelinks[frameno-1][joinvec[jc][i]].first,n2))
+					adjlist.push_back(pair<int,int>(n2,n1));
+			}
+			return;
+		}
+		if(find_in_nodelist(frameno,curr,n1) && find_in_nodelist(frameno-1,framelinks[frameno-1][prev].first,n2))
+			adjlist.push_back(pair<int,int>(n2,n1));*/
 	}
 }
-
+void Hypothesis::update_all(vector<bool>matches,vector<hypo>framehypo){
+	for(int i=0;i<matches.size();i++){
+		hypo h=framehypo[i];
+		if(!matches[i]){
+			int n=1;
+			for(int j=i+1;j<matches.size();j++)
+				matches[j]?n++:n;
+			listh.push_back(h);
+			pair<int,int> link(i,nolabels-n);
+			links.push_back(link);
+			framecondition[framecondition.size()-1][i]=NEW;
+		}
+		else{
+			if(framecondition[framecondition.size()-1][i]==JOIN){
+				vector<int>framejoin=joinvec.back();
+				vector<vector<HPoint>>framepoints = all_points[all_points.size()-1];
+				for(int j=0;j<framejoin.size();j++){
+					cv::Point np(0,0);
+					int npc=0;
+					for(int k=0;k<framepoints.size();k++){
+						for(int c=0;c<framepoints[k].size();c++){
+							for(int kk=0;kk<framepoints[k][c].label.size();kk++){
+								if(framejoin[j]==framepoints[k][c].label[kk]){
+									np.x+=framepoints[k][c].p.x;
+									np.y+=framepoints[k][c].p.y;
+									npc++;
+								}
+							}//kk
+						}//c
+					}//k
+					np.x=(double)np.x/(double)npc;
+					np.y=(double)np.y/(double)npc;
+					double d=DBL_MAX;
+					int closest=-1;
+					for(int k=0;k<listh.size();k++){
+						if(listh[k].age<0)
+							continue;
+						double d1=(listh[k].xc-np.x)*(listh[k].xc-np.x)+(listh[k].yc-np.y)*(listh[k].yc-np.y);
+						if(d1<d){
+							d=d1;
+							closest=k;
+						}
+					}
+					cv::Point v;
+					v=cv::Point(np.x-listh[closest].xc,np.y-listh[closest].yc);
+					listh[closest].xc=np.x;
+					listh[closest].yc=np.y;
+					listh[closest].v=v;
+					listh[closest].age=AGE_MAX;
+				}//j
+				//joinvec.pop_front();
+			}//if JOIN
+			else{
+				double d=DBL_MAX;
+				int closest=-1;
+				for(int i=0;i<listh.size();i++){
+					if(listh[i].age<0)
+							continue;
+					double d1=compare_ellipses(listh[i],h);
+					if(d>d1){
+						d=d1;
+						closest=i;
+					}
+				}
+				h.v=cv::Point(h.xc-listh[closest].xc,h.yc-listh[closest].yc);
+				listh[closest]=h;
+			}//second else
+		}//first else
+	}//i
+}
 double Hypothesis::compare_ellipses(hypo h1,hypo h2){
 	//double d;
 	//double histc=cv::compareHist(h1.hist,h2.hist, CV_COMP_BHATTACHARYYA);
@@ -323,12 +582,14 @@ void Hypothesis::hypos_broke(vector<hypo>& framehypo){
 				remove.push_back(links[i].second);
 				place.push_back(links[i].first);
 				place.push_back(links[j].first);
+			
 			}
 		}
 	}
 	if(remove.empty())
 		return;
 	cleanupandhousekeeping(framehypo,remove,place,BREAK);
+	modify_points(remove,place,BREAK);
 }
 void Hypothesis::hypos_join(vector<hypo>& framehypo){
 	vector<int>remove;
@@ -345,6 +606,7 @@ void Hypothesis::hypos_join(vector<hypo>& framehypo){
 	if(remove.empty())
 		return;
 	cleanupandhousekeeping(framehypo,remove,place,JOIN);
+	modify_points(remove,place,JOIN);
 }
 
 void Hypothesis::cleanupandhousekeeping(vector<hypo>& framehypo,vector<int>remove,vector<int>place,condition c){
@@ -353,7 +615,7 @@ void Hypothesis::cleanupandhousekeeping(vector<hypo>& framehypo,vector<int>remov
 	sort(place.begin(),place.end());
 	place.erase( unique( place.begin(), place.end() ), place.end());
 	if(c==JOIN){
-		vector<int>myvec;
+		/*vector<int>myvec;
 		for(int i=0;i<remove.size();i++){
 			for(int j=0;j<framelinks[framelinks.size()-1].size();j++){
 				if(framelinks[framelinks.size()-1][j].second==remove[i]){
@@ -361,24 +623,26 @@ void Hypothesis::cleanupandhousekeeping(vector<hypo>& framehypo,vector<int>remov
 				}
 			}
 		}
-		joinvec.push_back(myvec);
+		joinvec.push_back(myvec);*/
+		joinvec.push_back(remove);
 	}
-	vector<hypo> listhtemp;
-	for(int i=0;i<listh.size();i++){
-		bool there=false;
-		for(int j=0;j<remove.size();j++){
-			if(i==remove[j])
-				there=true;
+	if(c==BREAK){
+		vector<hypo> listhtemp;
+		for(int i=0;i<listh.size();i++){
+			bool there=false;
+			for(int j=0;j<remove.size();j++){
+				if(i==remove[j])
+					there=true;
+			}
+			if(!there)
+				listhtemp.push_back(listh[i]);
 		}
-		if(!there)
-			listhtemp.push_back(listh[i]);
+		listh.clear();
+		listh.assign(listhtemp.begin(),listhtemp.end());
+		listhtemp.clear();
+		for(int i=0;i<place.size();i++)
+			listh.push_back(framehypo[place[i]]);
 	}
-	listh.clear();
-	listh.assign(listhtemp.begin(),listhtemp.end());
-	listhtemp.clear();
-	for(int i=0;i<place.size();i++)
-		listh.push_back(framehypo[place[i]]);
-	
 	vector<hypo> tempframehypo;
 	for(int i=0;i<framehypo.size();i++){
 		bool there=false;
@@ -388,11 +652,22 @@ void Hypothesis::cleanupandhousekeeping(vector<hypo>& framehypo,vector<int>remov
 				framecondition[framecondition.size()-1][i]=c;
 			}
 		}
-		if(!there)
-			tempframehypo.push_back(framehypo[i]);
+		//if(c==BREAK && !there)
+		//	tempframehypo.push_back(framehypo[i]);
 	}
-	framehypo.clear();
-	framehypo.assign(tempframehypo.begin(),tempframehypo.end());
+	/*if(c==BREAK){
+		framehypo.clear();
+		framehypo.assign(tempframehypo.begin(),tempframehypo.end());
+	}*/
 	tempframehypo.clear();
 	nolabels+=(place.size()-remove.size());
+}
+
+void Hypothesis::modify_points(vector<int>remove,vector<int>place,condition c){
+	if(c==BREAK){
+		modify_points_break(remove,place);
+	}
+}
+void Hypothesis::modify_points_break(vector<int>remove,vector<int>place){
+	
 }

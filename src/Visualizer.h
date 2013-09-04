@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "misc.h"
 using namespace std;
 using namespace cv;
 using namespace osg;
@@ -29,7 +30,7 @@ using namespace osg;
 #define SLOW_DOWN 2
 
 class VisualizerCallback;
-enum vizcondition{UNCHANGED,BROKEN,JOINED,FRESH};
+
 class Visualizer
 {
 	osg::ref_ptr<osg::Group> root;
@@ -41,7 +42,7 @@ class Visualizer
 	vector<osg::Vec3Array*> verts;
 	float **data;
 	int nframes;
-	int width,height;
+	int width,height,totalcolors;
 
 	vector<vector<vector<cv::Point>>> listcontours;
 	vector<vector<pair<int,int>>> framelinks;
@@ -51,10 +52,13 @@ class Visualizer
 	vector<vector<osg::Vec4>> colors;
 	vector<vector<int>> conditions;
 	vector<vector<int>> joinvec;
+	vector<vector<vector<int>>>framecontcolor;
+	vector<vector<osg::Vec4Array*>>colorarray;
 	
 	osg::ref_ptr<osg::Geode> bgdraw();
 	osg::ref_ptr<osg::PositionAttitudeTransform> tractordraw();
 	osg::ref_ptr<osg::Geode> drawAxes();
+	osg::ref_ptr<osg::LightSource> get_lightsource();
 	void setscene();
 	void create_vertices();
 	void make_all_vertices();
@@ -65,6 +69,7 @@ class Visualizer
 	osg::Vec4 make_new_color();
 	void make_color_array();
 	void make_vertices(int start,int end,int i,vector<vector<cv::Point>> contours,cv::Rect r,osg::Vec3Array*& vdata,osg::DrawElementsUInt*& idata);
+	int find_bin(int n,int x);
 public:
 	Visualizer(float **d,int num_of_frames,int w,int h);
 	~Visualizer(void);
@@ -72,6 +77,8 @@ public:
 	void add_links(vector<vector<pair<int,int>>>);
 	void add_conditions(vector<vector<int>>);
 	void add_joinvec(vector<vector<int>>);
+	void add_fcc(vector<vector<vector<int>>>);
+	void add_nocolors(int);
 	void update_vertices(int);
 	void view();
 

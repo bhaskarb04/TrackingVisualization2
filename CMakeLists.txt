@@ -46,6 +46,7 @@ SET(SOURCES
 	${SRC_DIR}/VisualizerCallback.h
 	${SRC_DIR}/Process.h
 	${SRC_DIR}/Hypothesis.h
+	${SRC_DIR}/misc.h
 	)
 
 INCLUDE_DIRECTORIES(${OPENGL_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS})

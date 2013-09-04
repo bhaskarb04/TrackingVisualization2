@@ -26,10 +26,25 @@ void Visualizer::add_joinvec(vector<vector<int>>jv){
 }
 void Visualizer::add_links(vector<vector<pair<int,int>>> fl){
 	framelinks=fl;
+	make_all_vertices();
 	make_color_array();
 }
+void Visualizer::add_fcc(vector<vector<vector<int>>> fcc){
+	framecontcolor=fcc;
+}
+void Visualizer::add_nocolors(int c){
+	totalcolors=c;
+}
 
-
+osg::ref_ptr<osg::LightSource> Visualizer::get_lightsource(){
+	osg::ref_ptr<osg::Light> light = new osg::Light();
+	osg::ref_ptr<osg::LightSource> lightsource = new osg::LightSource();
+	lightsource->setLight(light);
+	osg::StateSet *stateset=root->getOrCreateStateSet();
+	lightsource->setStateSetModes(*stateset,osg::StateAttribute::ON);
+	light->setAmbient(osg::Vec4(1.0,1.0,1.0,1.0));
+	return lightsource;
+}
 osg::Vec4 Visualizer::make_new_color(){
 	float r= (float)rand()/(float)RAND_MAX;
 	float g= (float)rand()/(float)RAND_MAX;
@@ -38,20 +53,20 @@ osg::Vec4 Visualizer::make_new_color(){
 }
 
 void Visualizer::make_color_array(){
-	int jc=0;
+	/*int jc=0;
 	bool getoutofjoined;
 	for(int frame=0;frame<framelinks.size();frame++){
 		vector<osg::Vec4> framecolor;
 		vector<int> alreadyseen;
 		for(int bc=0;bc<framelinks[frame].size();bc++){
 			switch(conditions[frame][framelinks[frame][bc].first]){
-			case(UNCHANGED):
+			case(NOTHING):
 				framecolor.push_back(colors[frame-1][framelinks[frame][bc].second]);
 				break;
-			case(BROKEN):
+			case(BREAK):
 				framecolor.push_back(colors[frame-1][framelinks[frame][bc].second]);
 				break;
-			case(JOINED):
+			case(JOIN):
 				getoutofjoined=false;
 				for(int i=0;i<alreadyseen.size();i++){
 					if(alreadyseen[i]==framelinks[frame][bc].first)
@@ -64,18 +79,40 @@ void Visualizer::make_color_array(){
 					framecolor.push_back(colors[frame-1][joinvec[jc][i]]);
 				jc++;
 				break;
-			case(FRESH):
+			case(NEW):
 				framecolor.push_back(make_new_color());
 				break;
 			}
 		}
 		colors.push_back(framecolor);
+	}*/
+	vector<osg::Vec4> clrs;
+	for(int i=0;i<totalcolors;i++){
+		clrs.push_back(make_new_color());
+	}
+	for(int frame=0;frame<framecontcolor.size();frame++){
+		vector<osg::Vec4Array*> framecolors;
+		for(int cont=0;cont<framecontcolor[frame].size();cont++){
+			vector<osg::Vec4f> contcolor;
+			for(int i=0;i<framecontcolor[frame][cont].size();i++)
+				contcolor.push_back(clrs[framecontcolor[frame][cont][i]]);
+			osg::Vec4Array *carray = new osg::Vec4Array;
+			Rect r=cv::boundingRect(listcontours[frame][cont]);
+			r.x=r.x<0?0:r.x;
+			r.y=r.y<0?0:r.y;
+			int step=r.height/framecontcolor[frame][cont].size();
+			for(int j=0;j<vertices_all[frame][cont]->size();j++){
+				int binval=find_bin(step,(*vertices_all[frame][cont])[j].y()-r.y-1);
+				carray->push_back(contcolor[binval]);
+			}
+			framecolors.push_back(carray);
+		}
+		colorarray.push_back(framecolors);
 	}
 }
 
 void Visualizer::view(){
 	//create_vertices();
-	make_all_vertices();
 	setscene();
 	osgViewer::Viewer viewer;
 	viewer.setSceneData( root );
@@ -95,6 +132,7 @@ void Visualizer::setscene(){
 	particletransform = new osg::MatrixTransform;
 	root->addChild(bgdraw());
 	//root->addChild(tractordraw());
+	root->addChild(get_lightsource());
 	root->addChild(drawAxes());
 	root->addChild(transform);
 	transform->setUpdateCallback(vc);
@@ -180,6 +218,13 @@ void Visualizer::create_vertices(){
 	}//i
 }
 
+int Visualizer::find_bin(int n,int x){
+	int i=0;
+	while(n*i<x)
+		i++;
+	i=i-1<0?1:i;
+	return i-1;
+}
 void Visualizer::update_vertices(int framenum){
 	if(inds_all[framenum].size()==0)
 		return;
@@ -189,12 +234,23 @@ void Visualizer::update_vertices(int framenum){
 		osg::ref_ptr<osg::Geode> geode = new osg::Geode; 
 		osg::ref_ptr<osg::Geometry> geometry= new osg::Geometry;
 		geometry->setVertexArray((osg::Vec3Array*)vertices_all[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
-		osg::Vec4Array *colorarray = new osg::Vec4Array;
-		colorarray->push_back(colors[framenum][i]);
-		geometry->setColorArray(colorarray);
-		geometry->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE_SET);
-		//geometry->setVertexArray(vertices[framenum]);
-		//cout<<"Blah Blah "<<framenum<<endl;
+		/*osg::Vec4Array *colorarray = new osg::Vec4Array;
+		if(conditions[framenum][i]==JOIN){
+			int step=height/joinvec.size();
+			for(int j=0;j<vertices_all[framenum][i]->size();j++){
+				int binval=find_bin(step,(*vertices_all[framenum][i])[j].y());
+				colorarray->push_back(colors[framenum][i+binval]);
+			}
+			geometry->setColorArray(colorarray);
+			geometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+		}
+		else{
+			colorarray->push_back(colors[framenum][i]);
+			geometry->setColorArray(colorarray);
+			geometry->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE_SET);
+		}*/
+		geometry->setColorArray((osg::Vec4Array*)colorarray[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
+		geometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
 		geometry->addPrimitiveSet((osg::DrawElementsUInt*)inds_all[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
 		geode->addDrawable(geometry);
 		/*osg::StateSet* stateset = new osg::StateSet;
@@ -286,23 +342,27 @@ void Visualizer::make_all_vertices(){
 			osg::Vec3Array *vdata;
 			osg::DrawElementsUInt* idata;
 			//Find the contour bounds
-			cv::Rect r=cv::minAreaRect(contours[i]).boundingRect();
+			cv::Rect r=cv::boundingRect(contours[i]);
 			r.x=r.x<0?0:r.x;
 			r.y=r.y<0?0:r.y;
-			if(conditions[frame][i]==JOINED){
-				int step=joinvec[jc].size();
-				for(int k=0,rh=0;k<step;k++,rh+=r.height/step){
-					make_vertices(rh,rh+r.height/step,i,contours,r,vdata,idata);
-					framevertices.push_back(vdata);
-					frameindices.push_back(idata);
-				}
-				jc++;
-			}//JOIN CONDN
-			else{
-				make_vertices(0,r.height,i,contours,r,vdata,idata);
-				framevertices.push_back(vdata);
-				frameindices.push_back(idata);
-			}
+			//if(conditions[frame][i]==JOINED){
+			//	int step=joinvec[jc].size();
+			//	for(int k=0,rh=0;k<step;k++,rh+=r.height/step){
+			//		make_vertices(rh,rh+r.height/step,i,contours,r,vdata,idata);
+			//		framevertices.push_back(vdata);
+			//		frameindices.push_back(idata);
+			//	}
+			//	jc++;
+			//}//JOIN CONDN
+			//else{
+			//	make_vertices(0,r.height,i,contours,r,vdata,idata);
+			//	framevertices.push_back(vdata);
+			//	frameindices.push_back(idata);
+			//}
+			
+			make_vertices(0,r.height,i,contours,r,vdata,idata);
+			framevertices.push_back(vdata);
+			frameindices.push_back(idata);
 			//vertices.push_back(vertice);
 		}//i
 		vertices_all.push_back(framevertices);
@@ -318,13 +378,13 @@ void Visualizer::make_vertices(int rheightstart,int rheightend,int i,vector<vect
 	idata=new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
 	for(int y=rheightstart;y<rheightend && y<r.height;y++){
 		for(int x=0;x<r.width;x++){
-			vdata->push_back(osg::Vec3d(r.x+x,r.y+y,(data[i][r.x+x+(r.y+y)*width]+2)*40));
+			vdata->push_back(osg::Vec3d(r.x+x,r.y+y,(data[i][r.x+x+(r.y+y)*width]+2)*10));
 			if(!check_xy_valid(r.x+x,r.y+y))
 				continue;
 			float f1= data[i][r.x+x+(r.y+y)*width];
 			float f2= data[i][r.x+x+(r.y+y+1)*width];
 			float f3= data[i][(r.x+x+1)+(r.y+y+1)*width];
-			float f4= data[i][(r.x+x+1)+y*width];
+			float f4= data[i][(r.x+x+1)+(r.y+y)*width];
 				
 			for(int j=0;j<3;j++){
 				switch(j){
@@ -360,8 +420,8 @@ void Visualizer::make_vertices(int rheightstart,int rheightend,int i,vector<vect
 					break;
 				}//switch
 			}//j
-		}//height
-	}//width
+		}//width
+	}//height
 }
 
 void Visualizer::show_visual_analysis_time(float t){

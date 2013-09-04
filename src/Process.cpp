@@ -41,7 +41,9 @@ void Process::make_contours(){
 	visualizer->add_contours(listofcontours);
 	hype = new Hypothesis(listofcontours,maximum,images);
 	hype->track();
-	visualizer->add_joinvec(hype->get_joinvec());
+	visualizer->add_nocolors(hype->get_nocolors());
+	visualizer->add_fcc(hype->get_fcc());
+	//visualizer->add_joinvec(hype->get_joinvec());
 	visualizer->add_conditions(hype->get_conditions());
 	visualizer->add_links(hype->get_framelinks());
 	visualizer->view();
