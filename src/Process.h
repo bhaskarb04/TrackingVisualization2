@@ -15,7 +15,7 @@ private:
 	vector<cv::Mat> images;
 	int num_of_frames,width,height;
 	Hypothesis *hype;
-	double maximum;
+	double maximum,minimum;
 	vector<vector<vector<cv::Point>>> listofcontours;
 	Visualizer *visualizer;
 	

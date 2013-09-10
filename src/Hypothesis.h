@@ -13,7 +13,7 @@ private:
 	vector<hypo>listh;
 	vector<vector<vector<cv::Point>>> listcontours;
 	vector<Mat>images;
-	double histmax;
+	double histmax,histmin;
 	int nolabels;
 	int maxnolabels;
 	vector<pair<int,int>>links;
@@ -29,6 +29,10 @@ private:
 	vector<pair<int,int>>adjlist;
 	vector<vector<vector<int>>>framecontcolor;
 	vector<pair<int,int>> repeat;
+	vector<int>colorh;
+	vector<vector<int>>all_color;
+	vector<bool**>valid;
+	vector<cv::Mat>labels;
 
 	hypo create_hypo(vector<cv::Point>,Mat,int);
 	bool check_hypos(vector<HPoint>&,int);
@@ -69,5 +73,8 @@ public:
 	vector<vector<hypo>> get_hypolist(){return all_hypo;}
 	vector<vector<vector<int>>> get_fcc(){return framecontcolor;}
 	int get_nocolors(){return maxnolabels;}
+	vector<vector<vector<HPoint>>> get_allpoints(){return all_points;}
+	vector<bool**> get_validity(){return valid;}
+	vector<cv::Mat> get_labels(){return labels;}
 
 };

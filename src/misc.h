@@ -16,7 +16,7 @@ using namespace std;
 
 struct hypo{
 	double alpha,beta,theta;
-	double xc,yc;
+	double xc,yc,zc;
 	int age;
 	Mat hist;
 	cv::Point v;
@@ -24,6 +24,7 @@ struct hypo{
 };
 struct HPoint{
 	cv::Point p;
+	float z;
 	vector<int> label;
 };
 

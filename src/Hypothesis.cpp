@@ -44,6 +44,7 @@ hypo Hypothesis::create_hypo(vector<cv::Point>contour,Mat histmask,int imageno){
 	h.theta = atan(-sigmaxy/(lambda1-sigmayy));
 	h.xc=meanval.val[0];
 	h.yc=meanval.val[1];
+	h.zc=images[imageno].at<float>(int(h.yc),int(h.xc));
 	h.age=AGE_MAX;
 	h.area=cv::contourArea(contour);
 
@@ -92,20 +93,32 @@ void Hypothesis::track(){
 		vector<bool>matches;
 		vector<int> conditions;
 		vector<vector<HPoint>>framepoints;
+		labels.push_back(cv::Mat::ones(images[0].rows,images[0].cols,CV_32FC1)*-1);
 		for(unsigned int i=0;i<contours.size();i++){
 		//Find the contour bounds
-			cv::Rect r=cv::minAreaRect(contours[i]).boundingRect();
+			cv::Rect r=cv::boundingRect(contours[i]);
 		//Find the points which are in the contour
 			vector<HPoint> points;
+			bool** valid1=new bool*[images[0].cols];
+			for(int k=0;k<images[0].cols;k++){
+				valid1[k]=new bool[images[0].rows];
+				for(int k2=0;k2<images[0].rows;k2++)
+					valid1[k][k2]=false;
+			}
+
 			for(int x=r.x;x<r.x+r.width;x++){
 				for(int y=r.y;y<r.y+r.height;y++){
 					if(pointPolygonTest(contours[i],cv::Point2f(x,y),false)>=0){
 						HPoint hp;
 						hp.p=cv::Point(x,y);
+						hp.z=images[j].at<float>(x,y);
 						points.push_back(hp);
+						if(!_isnan(double(hp.z)))
+							valid1[x][y]=true;
 					}
 				}//y
 			}//x
+			valid.push_back(valid1);
 		//Check each point against all hypos
 			Mat hmask=cv::Mat::zeros(images[0].size(),CV_8UC1);
 			vector<vector<cv::Point>> tempc;
@@ -134,6 +147,7 @@ void Hypothesis::track(){
 		//cout<<j<<endl;
 		all_points.push_back(framepoints);
 		update_all(matches,framehypo);
+		all_color.push_back(colorh);
 		maxnolabels=maxnolabels<nolabels?nolabels:maxnolabels;
 		framelinks.push_back(links);
 		links.clear();
@@ -141,9 +155,9 @@ void Hypothesis::track(){
 		show_analysis_time(float(j)/float(listcontours.size()));
 	}//j
 	show_analysis_time(1.0);
-	cout<<endl<<"Number of particles detected: "<<maxnolabels<<endl;
 	//make_adjlist();
 	make_colors();
+	cout<<endl<<"Number of particles detected: "<<maxnolabels<<endl;
 	cout<<endl;
 }
 
@@ -156,19 +170,26 @@ void Hypothesis::make_colors(){
 	for(int i=0;i<all_hypo.size();i++)
 		framecontcolor[i].resize(all_hypo[i].size());
 	int framemax;
+	maxnolabels=0;
 	for(int i=0;i<all_hypo.size();i++){
-		if(all_hypo[i].size()==maxnolabels){
+		if(all_hypo[i].size()>maxnolabels){
 			framemax=i;
-			break;
+			maxnolabels=all_hypo[i].size();
 		}
+		//maxnolabels=maxnolabels<all_hypo[i].size()?all_hypo[i].size():maxnolabels;
 	}
 	for(int i=0;i<framelinks.size();i++){
 		for(int j=0;j<framelinks[i].size();j++){
 			framecontcolor[i][framelinks[i][j].first].push_back(framelinks[i][j].second);
+			//maxnolabels=maxnolabels<framelinks[i][j].second?framelinks[i][j].second:maxnolabels;
 		}
 	}
+	//maxnolabels++;
 	//check for breaks
-	for(int i=0;i<framecondition.size();i++){
+	for(int i=framemax;i<framemax+1;i++){
+		listh.clear();
+		colorh.clear();
+		bool broke=false;
 		for(int j=0;j<framecondition[i].size();j++){
 			if(framecondition[i][j]==BREAK){
 				int start=framelinks[i+1][j].second;
@@ -177,6 +198,57 @@ void Hypothesis::make_colors(){
 						framecontcolor[k][start].clear();
 					framecontcolor[k][start].push_back(framelinks[i+1][j].second);
 					start=framelinks[k][start].second;
+					broke=true;
+				}
+			}
+			listh.push_back(all_hypo[i][j]);
+			listh.back().v=cv::Point(0,0);
+			colorh.push_back(all_color[i][j]);
+		}
+		if(broke){
+			for(int k1=i;k1>=0;k1--){
+				for(unsigned int k2=0; k2<all_points[k1].size();k2++){
+					for(unsigned int k3=0;k3<all_points[k1][k2].size();k3++){
+						all_points[k1][k2][k3].label.clear();
+						check_hypo(all_points[k1][k2][k3],true);
+					}
+				}
+				for(int j=0;j<listh.size();j++){
+					cv::Point np(0,0);
+					int npc=0;
+					//draw_with_one(k1,listh[j]);
+					//cv::waitKey();
+					for(int k=0;k<all_points[k1].size();k++){
+						for(int c=0;c<all_points[k1][k].size();c++){
+							for(int kk=0;kk<all_points[k1][k][c].label.size();kk++){
+								if(j==all_points[k1][k][c].label[kk]){
+									np.x+=all_points[k1][k][c].p.x;
+									np.y+=all_points[k1][k][c].p.y;
+									npc++;
+								}
+							}//kk
+						}//c
+					}//k
+					np.x=(double)np.x/(double)npc;
+					np.y=(double)np.y/(double)npc;
+					double d=DBL_MAX;
+					int closest=-1;
+					for(int k=0;k<listh.size();k++){
+						if(listh[k].age<0)
+							continue;
+						double d1=(listh[k].xc-np.x)*(listh[k].xc-np.x)+(listh[k].yc-np.y)*(listh[k].yc-np.y);
+						if(d1<d){
+							d=d1;
+							closest=k;
+						}
+					}
+					cout<<k1<<endl;
+					cv::Point v;
+					v=cv::Point(np.x-listh[closest].xc,np.y-listh[closest].yc);
+					listh[closest].xc=np.x;
+					listh[closest].yc=np.y;
+					listh[closest].v=v;
+					listh[closest].age=AGE_MAX;
 				}
 			}
 		}
@@ -225,6 +297,17 @@ void Hypothesis::make_colors(){
 		for(int j=0;j<framecontcolor[i].size();j++){
 			sort(framecontcolor[i][j].begin(),framecontcolor[i][j].end());
 			framecontcolor[i][j].erase( unique( framecontcolor[i][j].begin(), framecontcolor[i][j].end() ), framecontcolor[i][j].end());
+		}
+	}
+	for(int f=0;f<all_points.size();f++){
+		for(int i=0;i<all_points[f].size();i++){
+			for(int j=0;j<all_points[f][i].size();j++){
+				if(all_points[f][i][j].label.size()>0){
+					if(all_points[f][i][j].label[0]>=maxnolabels)
+						all_points[f][i][j].label[0]=maxnolabels-1;
+					labels[f].at<float>(all_points[f][i][j].p.y,all_points[f][i][j].p.x)=all_points[f][i][j].label[0];
+				}
+			}
 		}
 	}
 	//check_localpos();
@@ -412,7 +495,7 @@ bool Hypothesis::check_hypo(HPoint& point,bool recheck){
 		double d1=getD(point,i);
 		if(!recheck){
 			if(d1<=1.0){
-				point.label.push_back(i);
+				point.label.push_back(colorh[i]);
 				retval=true; 
 			}
 		}
@@ -424,7 +507,7 @@ bool Hypothesis::check_hypo(HPoint& point,bool recheck){
 		}
 	}
 	if(recheck)
-		point.label.push_back(ltemp);
+		point.label.push_back(colorh[ltemp]);
 	//cout<<d<<" "; 
 	
 	return retval;
@@ -478,6 +561,7 @@ void Hypothesis::update_all(vector<bool>matches,vector<hypo>framehypo){
 			for(int j=i+1;j<matches.size();j++)
 				matches[j]?n++:n;
 			listh.push_back(h);
+			colorh.push_back(nolabels-n);
 			pair<int,int> link(i,nolabels-n);
 			links.push_back(link);
 			framecondition[framecondition.size()-1][i]=NEW;
@@ -627,21 +711,42 @@ void Hypothesis::cleanupandhousekeeping(vector<hypo>& framehypo,vector<int>remov
 		joinvec.push_back(remove);
 	}
 	if(c==BREAK){
-		vector<hypo> listhtemp;
+		/*vector<hypo> listhtemp;
+		vector<int> colortemp;
 		for(int i=0;i<listh.size();i++){
 			bool there=false;
 			for(int j=0;j<remove.size();j++){
 				if(i==remove[j])
 					there=true;
 			}
-			if(!there)
+			if(!there){
 				listhtemp.push_back(listh[i]);
+				colortemp.push_back(colorh[i]);
+			}
 		}
 		listh.clear();
+		colorh.clear();
 		listh.assign(listhtemp.begin(),listhtemp.end());
+		colorh.assign(colortemp.begin(),colortemp.end());
 		listhtemp.clear();
+		colortemp.clear();
 		for(int i=0;i<place.size();i++)
 			listh.push_back(framehypo[place[i]]);
+		int range=colorh.size()+place.size();
+		for(int i=0;i<range;i++){
+			bool there=false;
+			for(int j=0;j<colorh.size();j++){
+				if(i==colorh[j])
+					there=true;
+			}
+			if(!there)
+				colorh.push_back(i);
+		}*/
+		listh.clear();
+		colorh.clear();
+		for(int i=0;i<framehypo.size();i++)
+			colorh.push_back(i);
+		listh.assign(framehypo.begin(),framehypo.end());
 	}
 	vector<hypo> tempframehypo;
 	for(int i=0;i<framehypo.size();i++){

@@ -5,6 +5,7 @@ Process::Process(float **data,int nf,int w,int h){
 	width=w;
 	height=h;
 	maximum=0;
+	minimum=DBL_MAX;
 	for(int i=0;i<nf;i++){
 		cv::Mat m(height,width,CV_32FC1,data[i]);
 		checkmax(m);
@@ -21,6 +22,7 @@ void Process::checkmax(Mat m){
 	double minval,maxval;
 	minMaxLoc(m,&minval,&maxval);
 	maximum=(maximum<maxval?maxval:maximum);
+	minimum=(minimum>minval?minval:minimum);
 }
 
 void Process::make_contours(){
@@ -41,10 +43,14 @@ void Process::make_contours(){
 	visualizer->add_contours(listofcontours);
 	hype = new Hypothesis(listofcontours,maximum,images);
 	hype->track();
+	visualizer->add_minmax(minimum,maximum);
 	visualizer->add_nocolors(hype->get_nocolors());
 	visualizer->add_fcc(hype->get_fcc());
 	//visualizer->add_joinvec(hype->get_joinvec());
 	visualizer->add_conditions(hype->get_conditions());
+	visualizer->add_allpoints(hype->get_allpoints());
+	visualizer->add_validity(hype->get_validity());
+	visualizer->add_labels(hype->get_labels());
 	visualizer->add_links(hype->get_framelinks());
 	visualizer->view();
 }

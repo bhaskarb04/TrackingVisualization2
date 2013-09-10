@@ -43,6 +43,7 @@ class Visualizer
 	float **data;
 	int nframes;
 	int width,height,totalcolors;
+	double maxval,minval;
 
 	vector<vector<vector<cv::Point>>> listcontours;
 	vector<vector<pair<int,int>>> framelinks;
@@ -54,6 +55,9 @@ class Visualizer
 	vector<vector<int>> joinvec;
 	vector<vector<vector<int>>>framecontcolor;
 	vector<vector<osg::Vec4Array*>>colorarray;
+	vector<vector<vector<HPoint>>> all_points;
+	vector<cv::Mat>labels;
+	vector<bool**> valid;
 	
 	osg::ref_ptr<osg::Geode> bgdraw();
 	osg::ref_ptr<osg::PositionAttitudeTransform> tractordraw();
@@ -69,7 +73,9 @@ class Visualizer
 	osg::Vec4 make_new_color();
 	void make_color_array();
 	void make_vertices(int start,int end,int i,vector<vector<cv::Point>> contours,cv::Rect r,osg::Vec3Array*& vdata,osg::DrawElementsUInt*& idata);
+	void make_vertices_2(int frameno,int cont,osg::Vec3Array*& vdata,osg::DrawElementsUInt*& idata);
 	int find_bin(int n,int x);
+	int find_label(int x,int y,int frame,int cont);
 public:
 	Visualizer(float **d,int num_of_frames,int w,int h);
 	~Visualizer(void);
@@ -78,7 +84,11 @@ public:
 	void add_conditions(vector<vector<int>>);
 	void add_joinvec(vector<vector<int>>);
 	void add_fcc(vector<vector<vector<int>>>);
+	void add_allpoints(vector<vector<vector<HPoint>>>);
 	void add_nocolors(int);
+	void add_minmax(double,double);
+	void add_validity(vector<bool**>);
+	void add_labels(vector<cv::Mat>);
 	void update_vertices(int);
 	void view();
 

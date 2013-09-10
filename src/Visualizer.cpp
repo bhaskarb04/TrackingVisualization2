@@ -35,7 +35,19 @@ void Visualizer::add_fcc(vector<vector<vector<int>>> fcc){
 void Visualizer::add_nocolors(int c){
 	totalcolors=c;
 }
-
+void Visualizer::add_allpoints(vector<vector<vector<HPoint>>> ap){
+	all_points=ap;
+}
+void Visualizer::add_minmax(double minv,double maxv){
+	minval=minv;
+	maxval=maxv;
+}
+void Visualizer::add_validity(vector<bool**> v){
+	valid=v;
+}
+void Visualizer::add_labels(vector<cv::Mat> l){
+	labels=l;
+}
 osg::ref_ptr<osg::LightSource> Visualizer::get_lightsource(){
 	osg::ref_ptr<osg::Light> light = new osg::Light();
 	osg::ref_ptr<osg::LightSource> lightsource = new osg::LightSource();
@@ -93,24 +105,41 @@ void Visualizer::make_color_array(){
 	for(int frame=0;frame<framecontcolor.size();frame++){
 		vector<osg::Vec4Array*> framecolors;
 		for(int cont=0;cont<framecontcolor[frame].size();cont++){
-			vector<osg::Vec4f> contcolor;
-			for(int i=0;i<framecontcolor[frame][cont].size();i++)
-				contcolor.push_back(clrs[framecontcolor[frame][cont][i]]);
+			//vector<osg::Vec4f> contcolor;
+			//for(int i=0;i<framecontcolor[frame][cont].size();i++)
+			//	contcolor.push_back(clrs[framecontcolor[frame][cont][i]]);
 			osg::Vec4Array *carray = new osg::Vec4Array;
-			Rect r=cv::boundingRect(listcontours[frame][cont]);
-			r.x=r.x<0?0:r.x;
-			r.y=r.y<0?0:r.y;
-			int step=r.height/framecontcolor[frame][cont].size();
+			//Rect r=cv::boundingRect(listcontours[frame][cont]);
+			//r.x=r.x<0?0:r.x;
+			//r.y=r.y<0?0:r.y;
+			//int step=r.height/framecontcolor[frame][cont].size();
 			for(int j=0;j<vertices_all[frame][cont]->size();j++){
-				int binval=find_bin(step,(*vertices_all[frame][cont])[j].y()-r.y-1);
-				carray->push_back(contcolor[binval]);
+				//int binval=find_label((*vertices_all[frame][cont])[j].x(),(*vertices_all[frame][cont])[j].y(),frame,cont);
+				//int binval=find_bin(step,(*vertices_all[frame][cont])[j].y()-r.y-1);
+				int binval=labels[frame].at<float>(int((*vertices_all[frame][cont])[j].y()),int((*vertices_all[frame][cont])[j].x()));
+				if(binval<0)
+					carray->push_back(osg::Vec4(0,0,0,0));
+				else
+					carray->push_back(clrs[binval]);
 			}
 			framecolors.push_back(carray);
 		}
 		colorarray.push_back(framecolors);
+		cout<<frame<<endl;
 	}
 }
-
+int Visualizer::find_label(int x, int y,int frame,int cont){
+	int label=-1;
+	for(int i=0;i<all_points[frame][cont].size();i++){
+		if(all_points[frame][cont][i].p.x==x && all_points[frame][cont][i].p.y==y){
+			label=all_points[frame][cont][i].label[0];
+			if(label>=totalcolors)
+				label=totalcolors-1;
+			break;
+		}
+	}
+	return label;
+}
 void Visualizer::view(){
 	//create_vertices();
 	setscene();
@@ -378,7 +407,8 @@ void Visualizer::make_vertices(int rheightstart,int rheightend,int i,vector<vect
 	idata=new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
 	for(int y=rheightstart;y<rheightend && y<r.height;y++){
 		for(int x=0;x<r.width;x++){
-			vdata->push_back(osg::Vec3d(r.x+x,r.y+y,(data[i][r.x+x+(r.y+y)*width]+2)*10));
+			double zz=(data[i][r.x+x+(r.y+y)*width]-minval)/(maxval-minval)+1;
+			vdata->push_back(osg::Vec3d(r.x+x,r.y+y,zz*20));
 			if(!check_xy_valid(r.x+x,r.y+y))
 				continue;
 			float f1= data[i][r.x+x+(r.y+y)*width];
@@ -422,6 +452,63 @@ void Visualizer::make_vertices(int rheightstart,int rheightend,int i,vector<vect
 			}//j
 		}//width
 	}//height
+}
+
+void Visualizer::make_vertices_2(int frameno,int cont,osg::Vec3Array*& vdata,osg::DrawElementsUInt*& idata){
+	vdata=new osg::Vec3Array();
+	idata=new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
+
+	for(int yy=0;yy<height;yy++){
+		for(int xx=0;xx<width;xx++)
+			vdata->push_back(osg::Vec3d(xx,yy,0));
+	}
+	for(vector<HPoint>::iterator it=all_points[frameno][cont].begin();it!=all_points[frameno][cont].end();it++){
+		double zz=((*it).z - minval)/(maxval - minval) + 1;
+		vdata->at((*it).p.x+(*it).p.y*width).set(osg::Vec3d((*it).p.x,(*it).p.y,zz*20));
+		//if(!check_xy_valid(r.x+x,r.y+y))
+			//continue;
+		int x=(*it).p.x;
+		int y=(*it).p.y;
+		/*float f1= data[frameno][x+(y)*width];
+		float f2= data[frameno][x+(y+1)*width];
+		float f3= data[frameno][(x+1)+(y+1)*width];
+		float f4= data[frameno][(x+1)+(y)*width];*/
+				
+		for(int j=0;j<3;j++){
+			switch(j){
+			case(0):
+				if(!valid[frameno][x][y] || !valid[frameno][x][y+1] || !valid[frameno][x+1][y+1])
+					break;
+				//vertice->push_back(osg::Vec3(x,y,f1));
+				//vertice->push_back(osg::Vec3(x,y+1,f2));
+				//vertice->push_back(osg::Vec3(x+1,y+1,f3));
+				idata->push_back(x+(y)*width);
+				idata->push_back(x+(y+1)*width);
+				idata->push_back(x+1+(y+1)*width);
+				break;
+			case(1):
+				if(!valid[frameno][x][y] || !valid[frameno][x+1][y+1] || !valid[frameno][x+1][y])
+					break;
+				//vertice->push_back(osg::Vec3(x,y,f1));
+				//vertice->push_back(osg::Vec3(x+1,y+1,f3));
+				//vertice->push_back(osg::Vec3(x+1,y,f4));
+				idata->push_back(x+(y)*width);
+				idata->push_back(x+1+(y+1)*width);
+				idata->push_back(x+1+(y)*width);
+				break;
+			case(2):
+				if(!valid[frameno][x][y+1] || !valid[frameno][x+1][y+1] || !valid[frameno][x+1][y])
+					break;
+				//vertice->push_back(osg::Vec3(x,y+1,f2));
+				//vertice->push_back(osg::Vec3(x+1,y+1,f3));
+				//vertice->push_back(osg::Vec3(x+1,y,f4));
+				idata->push_back(x+(y)*width);
+				idata->push_back(x+1+(y+1)*width);
+				idata->push_back(x+1+(y)*width);
+				break;
+			}//switch
+		}//j
+	}//it
 }
 
 void Visualizer::show_visual_analysis_time(float t){
