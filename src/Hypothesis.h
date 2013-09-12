@@ -33,7 +33,7 @@ private:
 	vector<vector<int>>all_color;
 	vector<bool**>valid;
 	vector<cv::Mat>labels;
-	vector<map<int,cv::Point3d>>centres;
+	vector<map<int,pair<cv::Point3d,double> > >candr;
 
 	hypo create_hypo(vector<cv::Point>,Mat,int);
 	bool check_hypos(vector<HPoint>&,int);
@@ -77,6 +77,6 @@ public:
 	vector<vector<vector<HPoint>>> get_allpoints(){return all_points;}
 	vector<bool**> get_validity(){return valid;}
 	vector<cv::Mat> get_labels(){return labels;}
-	vector<map<int,cv::Point3d>> get_centres(){return centres;}
+	vector<map<int,pair<cv::Point3d,double> > > get_centres(){return candr;}
 
 };

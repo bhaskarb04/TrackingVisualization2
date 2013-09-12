@@ -29,6 +29,10 @@ using namespace cv;
 using namespace osg;
 
 #define SLOW_DOWN 2
+#define XDIR 5
+#define YDIR 5
+#define ZDIR 5
+#define SCALEDIR 2
 
 class VisualizerCallback;
 
@@ -36,7 +40,7 @@ class Visualizer
 {
 	osg::ref_ptr<osg::Group> root;
 	osg::ref_ptr<osg::MatrixTransform> transform;
-	osg::ref_ptr<osg::MatrixTransform> particletransform;
+	osg::ref_ptr<osg::PositionAttitudeTransform> particletransform;
 	VisualizerCallback *vc;
 	vector<osg::Vec3Array*> vertices;
 	vector<osg::DrawElementsUInt*> inds;
@@ -61,9 +65,10 @@ class Visualizer
 	vector<vector<vector<HPoint>>> all_points;
 	vector<cv::Mat>labels;
 	vector<bool**> valid;
-	vector<map<int,cv::Point3d>> centres;
+	vector<map<int,pair<cv::Point3d,double> > > centres;
 	vector<osg::Geode*> particlemodels;
 	vector<osg::Vec4> clrs;
+	osg::ref_ptr<osg::Switch> modelswitch;
 	
 	osg::ref_ptr<osg::Geode> bgdraw();
 	osg::ref_ptr<osg::PositionAttitudeTransform> tractordraw();
@@ -97,9 +102,24 @@ public:
 	void add_minmax(double,double);
 	void add_validity(vector<bool**>);
 	void add_labels(vector<cv::Mat>);
-	void add_centres(vector<map<int,cv::Point3d>>);
+	void add_centres(vector<map<int,pair<cv::Point3d,double> > >);
 	void update_vertices(int);
 	void view();
+
+	//Movement functions
+	//Particle movements
+	void move_particle_xplus();
+	void move_particle_xminus();
+	void move_particle_yplus();
+	void move_particle_yminus();
+	void move_particle_zplus();
+	void move_particle_zminus();
+	void scroll_particle();
+	void move_particle_scaleplus();
+	void move_particle_scaleminus();
+
+	//Target movements
+	void scroll_target();
 
 };
 

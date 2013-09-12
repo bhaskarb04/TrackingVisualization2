@@ -300,7 +300,7 @@ void Hypothesis::make_colors(){
 		}
 	}
 	for(int f=0;f<all_points.size();f++){
-		map<int,cv::Point3d>ccentres;
+		map<int,pair<cv::Point3d , double> >ccentres;
 		map<int,int>ccount;
 		for(int i=0;i<all_points[f].size();i++){
 			for(int j=0;j<all_points[f][i].size();j++){
@@ -310,16 +310,16 @@ void Hypothesis::make_colors(){
 					labels[f].at<float>(all_points[f][i][j].p.y,all_points[f][i][j].p.x)=all_points[f][i][j].label[0];
 					if(ccentres.find(all_points[f][i][j].label[0])==ccentres.end()){
 						if(_isnan(all_points[f][i][j].z))
-							ccentres[all_points[f][i][j].label[0]]=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,0.0);
+							ccentres[all_points[f][i][j].label[0]].first=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,0.0);
 						else
-							ccentres[all_points[f][i][j].label[0]]=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,all_points[f][i][j].z);
+							ccentres[all_points[f][i][j].label[0]].first=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,all_points[f][i][j].z);
 						ccount[all_points[f][i][j].label[0]]=1;
 					}
 					else{
 						if(!_isnan(all_points[f][i][j].z)){
 							//ccentres[all_points[f][i][j].label[0]]+=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,0.0);
 						//else
-							ccentres[all_points[f][i][j].label[0]]+=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,all_points[f][i][j].z);
+							ccentres[all_points[f][i][j].label[0]].first+=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,all_points[f][i][j].z);
 							ccount[all_points[f][i][j].label[0]]++;
 						}
 					}
@@ -327,11 +327,33 @@ void Hypothesis::make_colors(){
 			}
 		}
 		for(map<int,int>::iterator it=ccount.begin();it!=ccount.end();it++){
-			ccentres[(*it).first].x/=(*it).second;
-			ccentres[(*it).first].y/=(*it).second;
-			ccentres[(*it).first].z/=(*it).second;
+			ccentres[(*it).first].first.x/=(*it).second;
+			ccentres[(*it).first].first.y/=(*it).second;
+			ccentres[(*it).first].first.z/=(*it).second;
 		}
-		centres.push_back(ccentres);
+		vector<double> dmax(maxnolabels);
+		for(int j=0;j<maxnolabels;j++)
+			dmax[j]=0;
+		for(int i=0;i<all_points[f].size();i++){
+			for(int j=0;j<all_points[f][i].size();j++){
+					if(all_points[f][i][j].label.size()>0 && !_isnan(all_points[f][i][j].z)){
+						double d=pow((all_points[f][i][j].p.x - ccentres[all_points[f][i][j].label[0]].first.x),2)+
+								 pow((all_points[f][i][j].p.y - ccentres[all_points[f][i][j].label[0]].first.y),2)+
+								 pow((all_points[f][i][j].z - ccentres[all_points[f][i][j].label[0]].first.z),2);
+						if(d>dmax[all_points[f][i][j].label[0]])
+							dmax[all_points[f][i][j].label[0]]=d;
+				}
+			}
+		}
+		map<int,pair<cv::Point3d , double> >::iterator it=ccentres.begin();
+		for(int i=0;i<dmax.size();i++){
+			if(dmax[i]==0){
+				continue;
+			}
+			(*it).second.second=sqrt(dmax[i]);
+			it++;
+		}
+		candr.push_back(ccentres);
 	}
 	//check_localpos();
 }
