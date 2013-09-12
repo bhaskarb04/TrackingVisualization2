@@ -300,15 +300,38 @@ void Hypothesis::make_colors(){
 		}
 	}
 	for(int f=0;f<all_points.size();f++){
+		map<int,cv::Point3d>ccentres;
+		map<int,int>ccount;
 		for(int i=0;i<all_points[f].size();i++){
 			for(int j=0;j<all_points[f][i].size();j++){
 				if(all_points[f][i][j].label.size()>0){
 					if(all_points[f][i][j].label[0]>=maxnolabels)
 						all_points[f][i][j].label[0]=maxnolabels-1;
 					labels[f].at<float>(all_points[f][i][j].p.y,all_points[f][i][j].p.x)=all_points[f][i][j].label[0];
+					if(ccentres.find(all_points[f][i][j].label[0])==ccentres.end()){
+						if(_isnan(all_points[f][i][j].z))
+							ccentres[all_points[f][i][j].label[0]]=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,0.0);
+						else
+							ccentres[all_points[f][i][j].label[0]]=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,all_points[f][i][j].z);
+						ccount[all_points[f][i][j].label[0]]=1;
+					}
+					else{
+						if(!_isnan(all_points[f][i][j].z)){
+							//ccentres[all_points[f][i][j].label[0]]+=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,0.0);
+						//else
+							ccentres[all_points[f][i][j].label[0]]+=cv::Point3d(all_points[f][i][j].p.x,all_points[f][i][j].p.y,all_points[f][i][j].z);
+							ccount[all_points[f][i][j].label[0]]++;
+						}
+					}
 				}
 			}
 		}
+		for(map<int,int>::iterator it=ccount.begin();it!=ccount.end();it++){
+			ccentres[(*it).first].x/=(*it).second;
+			ccentres[(*it).first].y/=(*it).second;
+			ccentres[(*it).first].z/=(*it).second;
+		}
+		centres.push_back(ccentres);
 	}
 	//check_localpos();
 }

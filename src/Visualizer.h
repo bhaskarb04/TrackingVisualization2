@@ -16,6 +16,7 @@
 #include <osgUtil/SmoothingVisitor>
 #include <osgUtil\DelaunayTriangulator>
 #include <osgViewer/Viewer>
+#include<osg/Material>
 
 #include <opencv\cv.h>
 
@@ -44,6 +45,8 @@ class Visualizer
 	int nframes;
 	int width,height,totalcolors;
 	double maxval,minval;
+	int modelon,particleon;
+	bool showcentresonly,cyclemodel,cycleparticle;
 
 	vector<vector<vector<cv::Point>>> listcontours;
 	vector<vector<pair<int,int>>> framelinks;
@@ -58,11 +61,16 @@ class Visualizer
 	vector<vector<vector<HPoint>>> all_points;
 	vector<cv::Mat>labels;
 	vector<bool**> valid;
+	vector<map<int,cv::Point3d>> centres;
+	vector<osg::Geode*> particlemodels;
+	vector<osg::Vec4> clrs;
 	
 	osg::ref_ptr<osg::Geode> bgdraw();
 	osg::ref_ptr<osg::PositionAttitudeTransform> tractordraw();
 	osg::ref_ptr<osg::Geode> drawAxes();
 	osg::ref_ptr<osg::LightSource> get_lightsource();
+	osg::ref_ptr<osg::Switch> get_modelgroup();
+	void make_particle_models();
 	void setscene();
 	void create_vertices();
 	void make_all_vertices();
@@ -89,6 +97,7 @@ public:
 	void add_minmax(double,double);
 	void add_validity(vector<bool**>);
 	void add_labels(vector<cv::Mat>);
+	void add_centres(vector<map<int,cv::Point3d>>);
 	void update_vertices(int);
 	void view();
 

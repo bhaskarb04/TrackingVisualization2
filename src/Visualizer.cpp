@@ -7,7 +7,12 @@ Visualizer::Visualizer(float **d,int num_of_frames,int w,int h){
 	nframes=num_of_frames;
 	width=w;
 	height=h;
+	showcentresonly=true;
+	cycleparticle=false;
+	cyclemodel=false;
 	vc = new VisualizerCallback(num_of_frames,this);
+	modelon=0;
+	particleon=0;
 }
 
 
@@ -48,6 +53,9 @@ void Visualizer::add_validity(vector<bool**> v){
 void Visualizer::add_labels(vector<cv::Mat> l){
 	labels=l;
 }
+void Visualizer::add_centres(vector<map<int,cv::Point3d>> c){
+	centres=c;
+}
 osg::ref_ptr<osg::LightSource> Visualizer::get_lightsource(){
 	osg::ref_ptr<osg::Light> light = new osg::Light();
 	osg::ref_ptr<osg::LightSource> lightsource = new osg::LightSource();
@@ -55,6 +63,7 @@ osg::ref_ptr<osg::LightSource> Visualizer::get_lightsource(){
 	osg::StateSet *stateset=root->getOrCreateStateSet();
 	lightsource->setStateSetModes(*stateset,osg::StateAttribute::ON);
 	light->setAmbient(osg::Vec4(1.0,1.0,1.0,1.0));
+	light->setDiffuse(osg::Vec4(1.0,1.0,1.0,1.0));
 	return lightsource;
 }
 osg::Vec4 Visualizer::make_new_color(){
@@ -98,7 +107,6 @@ void Visualizer::make_color_array(){
 		}
 		colors.push_back(framecolor);
 	}*/
-	vector<osg::Vec4> clrs;
 	for(int i=0;i<totalcolors;i++){
 		clrs.push_back(make_new_color());
 	}
@@ -159,10 +167,12 @@ void Visualizer::setscene(){
 	root = new osg::Group;
 	transform = new osg::MatrixTransform;
 	particletransform = new osg::MatrixTransform;
+	make_particle_models();
 	root->addChild(bgdraw());
 	//root->addChild(tractordraw());
 	root->addChild(get_lightsource());
 	root->addChild(drawAxes());
+	root->addChild(get_modelgroup());
 	root->addChild(transform);
 	transform->setUpdateCallback(vc);
 	transform->addChild(particletransform);
@@ -259,40 +269,32 @@ void Visualizer::update_vertices(int framenum){
 		return;
 	if(particletransform->getNumChildren()>0)
 		particletransform->removeChildren(0,particletransform->getNumChildren());
-	for(int i=0;i<vertices_all[framenum].size();i++){
-		osg::ref_ptr<osg::Geode> geode = new osg::Geode; 
-		osg::ref_ptr<osg::Geometry> geometry= new osg::Geometry;
-		geometry->setVertexArray((osg::Vec3Array*)vertices_all[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
-		/*osg::Vec4Array *colorarray = new osg::Vec4Array;
-		if(conditions[framenum][i]==JOIN){
-			int step=height/joinvec.size();
-			for(int j=0;j<vertices_all[framenum][i]->size();j++){
-				int binval=find_bin(step,(*vertices_all[framenum][i])[j].y());
-				colorarray->push_back(colors[framenum][i+binval]);
-			}
-			geometry->setColorArray(colorarray);
+	if(!showcentresonly){
+		for(int i=0;i<vertices_all[framenum].size();i++){
+			osg::ref_ptr<osg::Geode> geode = new osg::Geode; 
+			osg::ref_ptr<osg::Geometry> geometry= new osg::Geometry;
+			geometry->setVertexArray((osg::Vec3Array*)vertices_all[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
+			geometry->setColorArray((osg::Vec4Array*)colorarray[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
 			geometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+			geometry->addPrimitiveSet((osg::DrawElementsUInt*)inds_all[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
+			geode->addDrawable(geometry);
+			particletransform->addChild(geode);
 		}
-		else{
-			colorarray->push_back(colors[framenum][i]);
-			geometry->setColorArray(colorarray);
-			geometry->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE_SET);
-		}*/
-		geometry->setColorArray((osg::Vec4Array*)colorarray[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
-		geometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
-		geometry->addPrimitiveSet((osg::DrawElementsUInt*)inds_all[framenum][i]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL)));
-		geode->addDrawable(geometry);
-		/*osg::StateSet* stateset = new osg::StateSet;
-		stateset->setMode(GL_LIGHTING,osg::StateAttribute::ON);
-		stateset->setAttribute(new osg::Point(3.0f),osg::StateAttribute::ON);
-		geometry->setStateSet(stateset);*/
-		particletransform->addChild(geode);
 	}
-	/*fstream fs;
-	fs.open("check.txt",fstream::out);
-	for(int i=0;i<inds[framenum]->size();i++)
-		if(_isnan(data[framenum][inds[framenum]->at(i)])) cout<<"Yipee";
-	fs.close();*/
+	osg::ref_ptr<osg::Geode> pgeode = new osg::Geode;
+	pgeode=(osg::Geode*)particlemodels[particleon]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL));
+	for(map<int,cv::Point3d>::iterator it=centres[framenum].begin();it!=centres[framenum].end();it++){
+		osg::PositionAttitudeTransform* pat=new osg::PositionAttitudeTransform;
+		pat->addChild(pgeode);
+		osg::ref_ptr<osg::Material> material = new osg::Material;
+		material->setColorMode(osg::Material::DIFFUSE);
+		osg::Vec4 color=clrs[labels[framenum].at<float>(int((*it).second.y),int((*it).second.x))];
+		material->setAmbient (osg::Material::FRONT_AND_BACK, color);
+		pgeode->getOrCreateStateSet()->setAttributeAndModes(material.get(), osg::StateAttribute::ON);
+		pat->setPosition(osg::Vec3((*it).second.x,(*it).second.y,(*it).second.z));
+		particletransform->addChild(pat);
+	}
+
 }
 
 osg::Vec3 Visualizer::convert_deere_geom(float x,float y,float z){
@@ -518,6 +520,34 @@ void Visualizer::show_visual_analysis_time(float t){
 		ptage++;
 	printf("%s %d%%\r",&bar[50-ptage/2],ptage);
 	fflush(stdout);
+}
+
+osg::ref_ptr<osg::Switch> Visualizer::get_modelgroup(){
+	osg::ref_ptr<osg::Switch> modelswitch=new osg::Switch;
+	osg::PositionAttitudeTransform *pat1=new osg::PositionAttitudeTransform;
+	osg::PositionAttitudeTransform *pat2=new osg::PositionAttitudeTransform;
+	osg::PositionAttitudeTransform *pat3=new osg::PositionAttitudeTransform;
+
+	modelswitch->addChild(pat1);
+	modelswitch->addChild(pat2);
+	modelswitch->addChild(pat3);
+
+	//Add first model to pat1
+
+	//Add second model to pat2
+
+	//Add third model to pat3
+
+
+	return modelswitch;
+}
+
+void Visualizer::make_particle_models(){
+	osg::Sphere* unitSphere = new osg::Sphere( osg::Vec3(0,0,0), 10.0);
+	osg::ShapeDrawable* unitSphereDrawable = new osg::ShapeDrawable(unitSphere);
+	osg::Geode* unitSphereGeode = new osg::Geode();
+	unitSphereGeode->addDrawable(unitSphereDrawable);
+	particlemodels.push_back(unitSphereGeode);
 }
 
 VisualizerCallback::VisualizerCallback(int nf,Visualizer* _parent){

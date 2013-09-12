@@ -51,6 +51,7 @@ void Process::make_contours(){
 	visualizer->add_allpoints(hype->get_allpoints());
 	visualizer->add_validity(hype->get_validity());
 	visualizer->add_labels(hype->get_labels());
+	visualizer->add_centres(hype->get_centres());
 	visualizer->add_links(hype->get_framelinks());
 	visualizer->view();
 }
