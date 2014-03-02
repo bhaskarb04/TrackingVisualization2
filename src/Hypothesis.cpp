@@ -9,7 +9,31 @@ Hypothesis::Hypothesis(vector<vector<vector<cv::Point>>>c,double m,vector<Mat> i
 }
 
 Hypothesis::~Hypothesis(){
-
+	listh.clear();
+	listcontours.clear();
+	for(int i=0;i<valid.size();i++){
+		for(int j=0;j<images[0].cols;j++)
+			delete valid[i][j];
+		delete valid[i];
+	}
+	images.clear();
+	links.clear();
+	bloblinks.clear();
+	framelinks.clear();
+	framecondition.clear();
+	joinvec.clear();
+	btob.clear();
+	all_points.clear();
+	all_hypo.clear();
+	gonelist.clear();
+	nodelist.clear();
+	adjlist.clear();
+	framecontcolor.clear();
+	repeat.clear();
+	colorh.clear();
+	all_color.clear();
+	labels.clear();
+	candr.clear();
 }
 
 

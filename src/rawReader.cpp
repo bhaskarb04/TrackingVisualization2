@@ -25,8 +25,11 @@ void rawReader::readfile(string dir,int start,int end,int w,int h,bool flip){
 			fread(data[j],sizeof(float),width*height,fp);
 			fclose(fp);
 	/*		
-			Test to see of the data was any good checked out fine
+	//		Test to see of the data was any good checked out fine
 			cv::Mat m(height,width,CV_32FC1,data[j]);
+			double minval,maxval;
+			cv::minMaxLoc(m,&minval,&maxval);
+			m=((m-minval)/(maxval-minval))*255;
 			cv::imshow("showme",m);
 			cv::waitKey(100);
 	*/

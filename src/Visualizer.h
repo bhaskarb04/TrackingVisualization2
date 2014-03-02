@@ -38,7 +38,7 @@ class VisualizerCallback;
 
 class Visualizer
 {
-	osg::ref_ptr<osg::Group> root;
+	osg::ref_ptr<osg::PositionAttitudeTransform> root;
 	osg::ref_ptr<osg::MatrixTransform> transform;
 	osg::ref_ptr<osg::PositionAttitudeTransform> particletransform;
 	VisualizerCallback *vc;
@@ -69,6 +69,8 @@ class Visualizer
 	vector<osg::Geode*> particlemodels;
 	vector<osg::Vec4> clrs;
 	osg::ref_ptr<osg::Switch> modelswitch;
+	osg::ref_ptr<osg::Switch> bgswitch;
+	osg::ref_ptr<osg::PositionAttitudeTransform> tractormat;
 	
 	osg::ref_ptr<osg::Geode> bgdraw();
 	osg::ref_ptr<osg::PositionAttitudeTransform> tractordraw();
@@ -76,7 +78,6 @@ class Visualizer
 	osg::ref_ptr<osg::LightSource> get_lightsource();
 	osg::ref_ptr<osg::Switch> get_modelgroup();
 	void make_particle_models();
-	void setscene();
 	void create_vertices();
 	void make_all_vertices();
 	osg::Vec3 convert_deere_geom(float x,float y,float z);
@@ -105,7 +106,7 @@ public:
 	void add_centres(vector<map<int,pair<cv::Point3d,double> > >);
 	void update_vertices(int);
 	void view();
-
+	void setscene();
 	//Movement functions
 	//Particle movements
 	void move_particle_xplus();
@@ -117,10 +118,41 @@ public:
 	void scroll_particle();
 	void move_particle_scaleplus();
 	void move_particle_scaleminus();
+	//Particle transform
+	void showspheres(bool toggle){showcentresonly=toggle;}
+	void togglebg(bool toggle);
+	//Model movements
+	void translate_model_xplus();
+	void translate_model_xminus();
+	void translate_model_yplus();
+	void translate_model_yminus();
+	void translate_model_zplus();
+	void translate_model_zminus();
+	void rotate_model_xplus();
+	void rotate_model_xminus();
+	void rotate_model_yplus();
+	void rotate_model_yminus();
+	void rotate_model_zplus();
+	void rotate_model_zminus();
 
+	void move_particle_x(float);
+	void move_particle_y(float);
+	void move_particle_z(float);
+
+	void togglemodel(bool toggle);
 	//Target movements
 	void scroll_target();
 
+	//Load models
+	void tractordraw(string modelname);
+	//Return the scene
+	osg::ref_ptr<osg::PositionAttitudeTransform> return_root(){
+		return root;
+	}
+
+	//Hack saves
+	void save_model();
+	void load_model();
 };
 
 class VisualizerCallback : public osg::NodeCallback{

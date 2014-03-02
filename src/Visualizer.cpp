@@ -7,7 +7,7 @@ Visualizer::Visualizer(float **d,int num_of_frames,int w,int h){
 	nframes=num_of_frames;
 	width=w;
 	height=h;
-	showcentresonly=true;
+	showcentresonly=false;
 	cycleparticle=false;
 	cyclemodel=false;
 	vc = new VisualizerCallback(num_of_frames,this);
@@ -18,6 +18,29 @@ Visualizer::Visualizer(float **d,int num_of_frames,int w,int h){
 
 Visualizer::~Visualizer(void)
 {
+	//delete vc;
+	//vector<osg::Vec3Array*> vertices;
+	//vector<osg::DrawElementsUInt*> inds;
+	//vector<osg::Vec3Array*> verts;
+	//float **data;
+	
+
+	listcontours.clear();
+	framelinks.clear();
+	//vector<vector<osg::Vec3Array*>> vertices_all;
+	//vector<vector<osg::DrawElementsUInt*>> inds_all;
+	//vector<vector<osg::Vec4Array*>>colorarray;
+	geodes.clear();
+	colors.clear();
+	conditions.clear();
+	joinvec.clear();
+	framecontcolor.clear();
+	
+	all_points.clear();
+	labels.clear();
+//	vector<osg::Geode*> particlemodels;
+
+	clrs.clear();
 }
 
 void Visualizer::add_contours(vector<vector<vector<cv::Point>>> lc){
@@ -164,20 +187,41 @@ void Visualizer::view(){
 }
 
 void Visualizer::setscene(){
-	root = new osg::Group;
+	//root node
+	root = new osg::PositionAttitudeTransform;
 	transform = new osg::MatrixTransform;
+	//root->addChild(transform);
+	//transform->addChild(osgDB::readNodeFile("cow.osg"));
 	particletransform = new osg::PositionAttitudeTransform;
 	make_particle_models();
-	root->addChild(bgdraw());
+	//switch for bg
+	bgswitch=new osg::Switch;
+	bgswitch->addChild(bgdraw());
+	root->addChild(bgswitch);
 	//root->addChild(tractordraw());
 	root->addChild(get_lightsource());
 	root->addChild(drawAxes());
-	root->addChild(get_modelgroup());
+	//root->addChild(get_modelgroup());
 	root->addChild(transform);
 	transform->setUpdateCallback(vc);
 	transform->addChild(particletransform);
 	
 }
+
+void Visualizer::togglebg(bool toggle){
+	if(toggle)
+		bgswitch->setAllChildrenOn();
+	else
+		bgswitch->setAllChildrenOff();
+}
+
+void Visualizer::togglemodel(bool toggle){
+	if(toggle)
+		modelswitch->setAllChildrenOn();
+	else
+		modelswitch->setAllChildrenOff();
+}
+
 osg::ref_ptr<osg::Geode> Visualizer::bgdraw()
 {
 	osg::ref_ptr<osg::Box> tractor= new osg::Box(osg::Vec3d(float(width)/2,float(height)/2,0),width,height,1);
@@ -197,6 +241,40 @@ osg::ref_ptr<osg::PositionAttitudeTransform> Visualizer::tractordraw(){
 	tractormat->addChild(tractorface);
 	return (tractormat.release());
 }
+
+void Visualizer::tractordraw(string modelname){
+	if(modelswitch!=NULL)
+		modelswitch->removeChildren(0,modelswitch->getNumChildren());
+	else
+		modelswitch = new osg::Switch;
+	tractormat = new osg::PositionAttitudeTransform;
+	osg::Node* tractorface = osgDB::readNodeFile(modelname);
+	tractormat->setPosition(osg::Vec3(3950,-280,0));
+	tractormat->setAttitude(osg::Quat(osg::DegreesToRadians(-90.0),osg::Vec3(0,1,0)));
+	tractormat->addChild(tractorface);
+	modelswitch->addChild(tractormat);
+	root->addChild(modelswitch);
+}
+
+void Visualizer::save_model(){
+	std::fstream fs;
+	fs.open("temp.dat",std::fstream::out);
+	fs<<tractormat->getPosition().x()<<tractormat->getPosition().y()<<tractormat->getPosition().z()<<std::endl;
+	fs<<tractormat->getAttitude().w()<<tractormat->getAttitude().x()<<tractormat->getAttitude().y()<<tractormat->getAttitude().z()<<std::endl;
+	fs.close();
+}
+
+void Visualizer::load_model(){
+	std::fstream fs;
+	fs.open("temp.dat",std::fstream::in);
+	double x,y,z,w;
+	fs>>x>>y>>z;
+	tractormat->setPosition(osg::Vec3d(x,y,z));
+	fs>>w>>x>>y>>z;
+	tractormat->setAttitude(osg::Quat(x,y,z,w));
+	fs.close();
+}
+
 
 void Visualizer::create_vertices(){
 	for(int i=0;i<nframes;i++){
@@ -281,19 +359,43 @@ void Visualizer::update_vertices(int framenum){
 			particletransform->addChild(geode);
 		}
 	}
-	for(map<int,pair<cv::Point3d,double> >::iterator it=centres[framenum].begin();it!=centres[framenum].end();it++){
-		osg::ref_ptr<osg::Geode> pgeode = new osg::Geode;
-		pgeode=(osg::Geode*)particlemodels[particleon]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL));
-		osg::PositionAttitudeTransform* pat=new osg::PositionAttitudeTransform;
-		pat->addChild(pgeode);
-		osg::ref_ptr<osg::Material> material = new osg::Material;
-		//material->setColorMode(osg::Material::DIFFUSE);
-		osg::Vec4 color=clrs[labels[framenum].at<float>(int((*it).second.first.y),int((*it).second.first.x))];
-		material->setAmbient(osg::Material::FRONT_AND_BACK, color);
-		pgeode->getOrCreateStateSet()->setAttributeAndModes(material.get(), osg::StateAttribute::ON);
-		pat->setPosition(osg::Vec3((*it).second.first.x,(*it).second.first.y,(*it).second.first.z));
-		pat->setScale(osg::Vec3d((*it).second.second,(*it).second.second,(*it).second.second));
-		particletransform->addChild(pat);
+	else{
+		for(map<int,pair<cv::Point3d,double> >::iterator it=centres[framenum].begin();it!=centres[framenum].end();it++){
+			osg::ref_ptr<osg::Geode> pgeode = new osg::Geode;
+			pgeode=(osg::Geode*)particlemodels[particleon]->clone(osg::CopyOp(osg::CopyOp::DEEP_COPY_ALL));
+			osg::PositionAttitudeTransform* pat=new osg::PositionAttitudeTransform;
+			pat->addChild(pgeode);
+			osg::ref_ptr<osg::Material> material = new osg::Material;
+			//material->setColorMode(osg::Material::DIFFUSE);
+			osg::Vec4 color=clrs[labels[framenum].at<float>(int((*it).second.first.y),int((*it).second.first.x))];
+			material->setAmbient(osg::Material::FRONT_AND_BACK, color);
+			pgeode->getOrCreateStateSet()->setAttributeAndModes(material.get(), osg::StateAttribute::ON);
+			pat->setPosition(osg::Vec3((*it).second.first.x,(*it).second.first.y,(*it).second.first.z));
+			pat->setScale(osg::Vec3d((*it).second.second,(*it).second.second,(*it).second.second));
+			particletransform->addChild(pat);
+		}
+	}
+	//Track lines
+	for(int frame=0;frame<=framenum;frame++){
+		for(map<int,pair<cv::Point3d,double> >::iterator it=centres[frame].begin();it!=centres[frame].end();it++){
+			//Tracks are lil spheres
+			osg::Sphere* unitSphere = new osg::Sphere( osg::Vec3(0,0,0), 2.5);
+			osg::ShapeDrawable* unitSphereDrawable = new osg::ShapeDrawable(unitSphere);
+			osg::Geode* unitSphereGeode = new osg::Geode();
+			unitSphereGeode->addDrawable(unitSphereDrawable);
+			//Link it to the pat
+			osg::PositionAttitudeTransform* pat=new osg::PositionAttitudeTransform;
+			pat->addChild(unitSphereGeode);
+			//Color it accordingly and link it to the scene
+			osg::ref_ptr<osg::Material> material = new osg::Material;
+			osg::Vec4 color=clrs[labels[frame].at<float>(int((*it).second.first.y),int((*it).second.first.x))];
+			material->setAmbient(osg::Material::FRONT_AND_BACK, color);
+			material->setDiffuse(osg::Material::FRONT_AND_BACK, color);
+			unitSphereGeode->getOrCreateStateSet()->setAttributeAndModes(material.get(), osg::StateAttribute::ON);
+			unitSphereGeode->getOrCreateStateSet()->setMode(GL_LIGHTING,osg::StateAttribute::ON);
+			pat->setPosition(osg::Vec3((*it).second.first.x,(*it).second.first.y,(*it).second.first.z));
+			particletransform->addChild(pat);
+		}
 	}
 
 }
@@ -371,6 +473,7 @@ void Visualizer::make_all_vertices(){
 		vector<osg::DrawElementsUInt*> frameindices;
 		vector<osg::Vec3Array*> framevertices;
 		for(unsigned int i=0;i<contours.size();i++){
+
 			osg::Vec3Array *vdata;
 			osg::DrawElementsUInt* idata;
 			//Find the contour bounds
@@ -411,7 +514,7 @@ void Visualizer::make_vertices(int rheightstart,int rheightend,int i,vector<vect
 	for(int y=rheightstart;y<rheightend && y<r.height;y++){
 		for(int x=0;x<r.width;x++){
 			double zz=(data[i][r.x+x+(r.y+y)*width]-minval)/(maxval-minval)+1;
-			vdata->push_back(osg::Vec3d(r.x+x,r.y+y,zz*20));
+			vdata->push_back(osg::Vec3d(r.x+x,r.y+y,zz*100));
 			if(!check_xy_valid(r.x+x,r.y+y))
 				continue;
 			float f1= data[i][r.x+x+(r.y+y)*width];
@@ -616,6 +719,85 @@ void Visualizer::scroll_target(){
 	modelon++;
 	modelswitch->setSingleChildOn(modelon);
 }
+
+void Visualizer::translate_model_xplus(){
+	osg::Vec3d prev=tractormat->getPosition();
+	prev.set(prev.x()+XDIR*100,prev.y(),prev.z());
+	tractormat->setPosition(prev);
+}
+
+void Visualizer::translate_model_xminus(){
+	osg::Vec3d prev=tractormat->getPosition();
+	prev.set(prev.x()-XDIR*100,prev.y(),prev.z());
+	tractormat->setPosition(prev);
+}
+
+void Visualizer::translate_model_yplus(){
+	osg::Vec3d prev=tractormat->getPosition();
+	prev.set(prev.x(),prev.y()+XDIR*100,prev.z());
+	tractormat->setPosition(prev);
+}
+
+void Visualizer::translate_model_yminus(){
+	osg::Vec3d prev=tractormat->getPosition();
+	prev.set(prev.x(),prev.y()-XDIR*100,prev.z());
+	tractormat->setPosition(prev);
+}
+
+void Visualizer::translate_model_zplus(){
+	osg::Vec3d prev=tractormat->getPosition();
+	prev.set(prev.x(),prev.y(),prev.z()+XDIR*100);
+	tractormat->setPosition(prev);
+}
+
+void Visualizer::translate_model_zminus(){
+	osg::Vec3d prev=tractormat->getPosition();
+	prev.set(prev.x(),prev.y(),prev.z()-XDIR*100);
+	tractormat->setPosition(prev);
+}
+
+void Visualizer::rotate_model_xplus(){
+	tractormat->setAttitude(tractormat->getAttitude()*osg::Quat(osg::DegreesToRadians(45.0),osg::Vec3(1,0,0)));
+}
+
+void Visualizer::rotate_model_xminus(){
+	tractormat->setAttitude(tractormat->getAttitude()*osg::Quat(osg::DegreesToRadians(-45.0),osg::Vec3(1,0,0)));
+}
+
+void Visualizer::rotate_model_yplus(){
+	tractormat->setAttitude(tractormat->getAttitude()*osg::Quat(osg::DegreesToRadians(45.0),osg::Vec3(0,1,0)));
+}
+
+void Visualizer::rotate_model_yminus(){
+	tractormat->setAttitude(tractormat->getAttitude()*osg::Quat(osg::DegreesToRadians(-45.0),osg::Vec3(0,1,0)));
+}
+
+void Visualizer::rotate_model_zplus(){
+	tractormat->setAttitude(tractormat->getAttitude()*osg::Quat(osg::DegreesToRadians(45.0),osg::Vec3(0,0,1)));
+}
+
+void Visualizer::rotate_model_zminus(){
+	tractormat->setAttitude(tractormat->getAttitude()*osg::Quat(osg::DegreesToRadians(-45.0),osg::Vec3(0,0,1)));
+}
+
+void Visualizer::move_particle_x(float val){
+	osg::Vec3d prev=particletransform->getPosition();
+	prev.set(prev.x()+val,prev.y(),prev.z());
+	particletransform->setPosition(prev);
+}
+
+void Visualizer::move_particle_y(float val){
+	osg::Vec3d prev=particletransform->getPosition();
+	prev.set(prev.x(),prev.y()+val,prev.z());
+	particletransform->setPosition(prev);
+}
+
+void Visualizer::move_particle_z(float val){
+	osg::Vec3d prev=particletransform->getPosition();
+	prev.set(prev.x(),prev.y(),prev.z()+val);
+	particletransform->setPosition(prev);
+}
+
 VisualizerCallback::VisualizerCallback(int nf,Visualizer* _parent){
 	frame=0;
 	nframes=nf;
@@ -636,3 +818,4 @@ void VisualizerCallback::operator()(osg::Node* node, osg::NodeVisitor* nv){
 	}
 	traverse(node, nv);
 }
+

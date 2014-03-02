@@ -6,16 +6,29 @@ Process::Process(float **data,int nf,int w,int h){
 	height=h;
 	maximum=0;
 	minimum=DBL_MAX;
+	vector<int>channels;
 	for(int i=0;i<nf;i++){
 		cv::Mat m(height,width,CV_32FC1,data[i]);
 		checkmax(m);
 		images.push_back(m);
 	}
+	/*Mat myhist;
+	float hranges[] = { minimum, maximum };
+	vector<int>histSize;
+	vector<float>ranges;
+	channels.push_back(0);
+	histSize.push_back(int(maximum-minimum)*3);
+	ranges.push_back(minimum);ranges.push_back(maximum);
+	cv::calcHist(images,channels,Mat(),myhist,histSize,ranges);
+	cout<<myhist<<endl;*/
 	visualizer = new Visualizer(data,nf,w,h);
 }
 
 Process::~Process(){
-
+	images.clear();
+	delete hype;
+	listofcontours.clear();
+	delete visualizer;
 }
 
 void Process::checkmax(Mat m){
@@ -53,7 +66,8 @@ void Process::make_contours(){
 	visualizer->add_labels(hype->get_labels());
 	visualizer->add_centres(hype->get_centres());
 	visualizer->add_links(hype->get_framelinks());
-	visualizer->view();
+	visualizer->setscene();
+	//visualizer->view();
 }
 
 void Process::clean_image(Mat &img){

@@ -1,0 +1,777 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1030</width>
+    <height>729</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>John Deere Tracking and Visualization</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QPushButton" name="LoadButton">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>10</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Load the video file to be analyzed</string>
+    </property>
+    <property name="text">
+     <string>Load Images</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="AnalyzeButton">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>40</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Analyze loaded video</string>
+    </property>
+    <property name="text">
+     <string>Analyze Images</string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="ViewBox">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>70</y>
+      <width>120</width>
+      <height>121</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>View</string>
+    </property>
+    <widget class="QRadioButton" name="OriginalRB">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>82</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>View original loaded video</string>
+     </property>
+     <property name="text">
+      <string>Original</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="CleanedRB">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>82</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>View the cleaned video</string>
+     </property>
+     <property name="text">
+      <string>Cleaned</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="ContoursRB">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>60</y>
+       <width>82</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>View the captured contours</string>
+     </property>
+     <property name="text">
+      <string>Contours</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="ThreeDRB">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>80</y>
+       <width>82</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>View the 3D Immersive environment</string>
+     </property>
+     <property name="text">
+      <string>3D Immersive</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="ExportButton">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>260</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Export analyzed data to VE Suite format</string>
+    </property>
+    <property name="text">
+     <string>Export to VESuite</string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="PlayerBox">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>560</y>
+      <width>581</width>
+      <height>121</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Player Buttons</string>
+    </property>
+    <widget class="QPushButton" name="PlayButton">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>20</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Play the animation</string>
+     </property>
+     <property name="text">
+      <string>Play</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="StopButton">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>20</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Stop the animation</string>
+     </property>
+     <property name="text">
+      <string>Stop</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="NextButton">
+     <property name="geometry">
+      <rect>
+       <x>220</x>
+       <y>20</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Next frame of animation</string>
+     </property>
+     <property name="text">
+      <string>Next Frame</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="PrevButton">
+     <property name="geometry">
+      <rect>
+       <x>304</x>
+       <y>20</y>
+       <width>81</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Previous frame of animation</string>
+     </property>
+     <property name="text">
+      <string>Previous Frame</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="LastButton">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>20</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Last frame of animation</string>
+     </property>
+     <property name="text">
+      <string>Last Frame</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="FirstButton">
+     <property name="geometry">
+      <rect>
+       <x>500</x>
+       <y>20</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>First frame of animation</string>
+     </property>
+     <property name="text">
+      <string>First Frame</string>
+     </property>
+    </widget>
+    <widget class="QSlider" name="FrameSlider">
+     <property name="geometry">
+      <rect>
+       <x>220</x>
+       <y>90</y>
+       <width>160</width>
+       <height>19</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Scroll the animation</string>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FrameRangeLabel">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>90</y>
+       <width>46</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Current frame / Total frames</string>
+     </property>
+     <property name="text">
+      <string>1/20</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="LoadProcButton">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>200</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Load previously analyzed data</string>
+    </property>
+    <property name="text">
+     <string>Load Processed Data</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="SaveProcButton">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>230</y>
+      <width>121</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Save analyzed data</string>
+    </property>
+    <property name="text">
+     <string>Save Processed Data</string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="PMBBox">
+    <property name="geometry">
+     <rect>
+      <x>890</x>
+      <y>290</y>
+      <width>121</width>
+      <height>151</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Scene Buttons</string>
+    </property>
+    <widget class="QPushButton" name="PlusXButton">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>20</y>
+       <width>31</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move the particles left</string>
+     </property>
+     <property name="text">
+      <string>+X</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="MinusXButton">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>20</y>
+       <width>31</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move particles right</string>
+     </property>
+     <property name="text">
+      <string>-X</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="MinusYButton">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>50</y>
+       <width>31</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move particles up</string>
+     </property>
+     <property name="text">
+      <string>-Y</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="PlusYButton">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>50</y>
+       <width>31</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move particles down</string>
+     </property>
+     <property name="text">
+      <string>+Y</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="MinusZButton">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>80</y>
+       <width>31</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move particles away from screen</string>
+     </property>
+     <property name="text">
+      <string>-Z</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="PlusZButton">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>80</y>
+       <width>31</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move particles towards screen</string>
+     </property>
+     <property name="text">
+      <string>+Z</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="showGreenBGBox">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>120</y>
+       <width>121</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Show (Hide) Green Plate</string>
+     </property>
+     <property name="text">
+      <string>Show Green BG</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="MyGLDrawer" name="DisplayWidget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>861</width>
+      <height>551</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="ViewerWidget" name="DisplayWidget3D" native="true">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>861</width>
+      <height>551</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Visualization Screen</string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>560</y>
+      <width>431</width>
+      <height>121</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Model Buttons</string>
+    </property>
+    <widget class="QPushButton" name="loadModelButton">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>20</y>
+       <width>81</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Load the model into environment</string>
+     </property>
+     <property name="text">
+      <string>Load Model</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="removeModelButton">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>80</y>
+       <width>81</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Remove the model from the environment</string>
+     </property>
+     <property name="text">
+      <string>Remove Model</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="modelplusX">
+     <property name="geometry">
+      <rect>
+       <x>110</x>
+       <y>20</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move model left</string>
+     </property>
+     <property name="text">
+      <string>+X</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="modelminusX">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>20</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move model right</string>
+     </property>
+     <property name="text">
+      <string>-X</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="modelplusY">
+     <property name="geometry">
+      <rect>
+       <x>110</x>
+       <y>50</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move model down</string>
+     </property>
+     <property name="text">
+      <string>+Y</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="modelminusY">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>50</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move model up</string>
+     </property>
+     <property name="text">
+      <string>-Y</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="modelplusZ">
+     <property name="geometry">
+      <rect>
+       <x>110</x>
+       <y>80</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move model towards screen</string>
+     </property>
+     <property name="text">
+      <string>+Z</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="modelminusZ">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>80</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Move model away from screen</string>
+     </property>
+     <property name="text">
+      <string>-Z</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RotPlusX">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>20</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Rotate about X-axis by 45 degrees</string>
+     </property>
+     <property name="text">
+      <string>X+45</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RotPlusY">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>50</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Rotate about Y-axis by 45 degrees</string>
+     </property>
+     <property name="text">
+      <string>Y+45</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RotPlusZ">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>80</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Rotate about Z-axis by 45 degrees</string>
+     </property>
+     <property name="text">
+      <string>Z+45</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RotMinusY">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>50</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Rotate about Y-axis by -45 degrees</string>
+     </property>
+     <property name="text">
+      <string>Y-45</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RotMinusZ">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>80</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Rotate about Z-axis by -45 degrees</string>
+     </property>
+     <property name="text">
+      <string>Z-45</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RotMinusX">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>20</y>
+       <width>41</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Rotate about X-axis by -45 degrees</string>
+     </property>
+     <property name="text">
+      <string>X-45</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="ScaleButton">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>30</y>
+       <width>75</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Scale current model</string>
+     </property>
+     <property name="text">
+      <string>Scale</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="SaveModButton">
+     <property name="geometry">
+      <rect>
+       <x>310</x>
+       <y>90</y>
+       <width>91</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Save model in environment with any modifications made</string>
+     </property>
+     <property name="text">
+      <string>SaveModification</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="scaleTextBox">
+     <property name="geometry">
+      <rect>
+       <x>320</x>
+       <y>60</y>
+       <width>81</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>1.0</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1030</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MyGLDrawer</class>
+   <extends>QWidget</extends>
+   <header>mainwindow.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ViewerWidget</class>
+   <extends>QWidget</extends>
+   <header>OSGQTWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

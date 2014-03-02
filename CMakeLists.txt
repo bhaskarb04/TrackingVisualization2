@@ -13,6 +13,15 @@ SET(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/${PROJECT_NAME}")
 SET(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 #------
+# QT
+#------
+
+FIND_PACKAGE(Qt4 4.8.4)
+SET(QT_USE_QTOPENGL true)
+INCLUDE(${QT_USE_FILE})
+SET(LIBS ${LIBS} ${QT_LIBRARIES})
+
+#------
 # OpenGL (use glut32)
 #------
 FIND_PACKAGE(OpenGL REQUIRED)
@@ -33,6 +42,13 @@ FIND_PACKAGE(OSG REQUIRED)
 INCLUDE_DIRECTORIES(${OSG_INCLUDE_DIR})
 SET(LIBS ${LIBS} "C:/libs/OpenSceneGraph-3.0.1_/install/lib/*d.lib")
 
+#------
+# VTK
+#------
+FIND_PACKAGE(VTK REQUIRED)
+INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIRS})
+SET(LIBS ${LIBS} "C:/libs/VTK5.10.1/install/lib/vtk-5.10/*.lib")
+
 SET(SOURCES
 	${SRC_DIR}/main.cpp
 	${SRC_DIR}/RawReader.cpp
@@ -40,6 +56,8 @@ SET(SOURCES
 	${SRC_DIR}/VisualizerCallback.cpp
 	${SRC_DIR}/Process.cpp
 	${SRC_DIR}/Hypothesis.cpp
+	${SRC_DIR}/mainwindow.cpp
+	${SRC_DIR}/OSGQTWidget.cpp
 	
 	${SRC_DIR}/RawReader.h
 	${SRC_DIR}/Visualizer.h
@@ -47,7 +65,22 @@ SET(SOURCES
 	${SRC_DIR}/Process.h
 	${SRC_DIR}/Hypothesis.h
 	${SRC_DIR}/misc.h
+	${SRC_DIR}/mainwindow.h
+	${SRC_DIR}/OSGQTWidget.h
 	)
+
+SET(UIS
+	${SRC_DIR}/mainwindow.ui
+	)
+SET(MOCS
+	${SRC_DIR}/mainwindow.h
+	${SRC_DIR}/OSGQTWidget.h
+	)
+
+QT4_WRAP_UI(GENERATED_SOURCES ${UIS})
+QT4_WRAP_cPP(GENERATED_SOURCES ${MOCS})
+
+SOURCE_GROUP("Generated Sources - Do Not Edit" FILES ${GENERATED_SOURCES})
 
 INCLUDE_DIRECTORIES(${OPENGL_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_BINARY_DIR}")
