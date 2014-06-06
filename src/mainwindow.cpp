@@ -247,7 +247,7 @@ void MainWindow::yslidervalue(int value){
 	datatranslation.y-=tempmodelmovement.y;
 	tempmodelmovement.y=float(value-50)*SLIDERSTEP*2;
 	datatranslation.y+=tempmodelmovement.y;
-	ui->DisplayWidget3D->translate_model_y(datatranslation.y);
+	ui->DisplayWidget3D->translate_data_y(datatranslation.y);
 	ui->datayposlabel->setText("Y: "+QString::number(datatranslation.y));
 }
 void MainWindow::zslidervalue(int value){
